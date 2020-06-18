@@ -24,7 +24,8 @@ USERLIB := printf.o \
 
 CFLAGS += -nostdlib -static
 
-all: fktest.x fktest.b pingpong.x  pingpong.b idle.x fstest.x fstest.b mtest.x mtest.b  $(USERLIB) entry.o syscall_wrap.o
+all: fktest.x fktest.b pingpong.x pingpong.b idle.x  A.x A.b B.x B.b C.x C.b \
+$(USERLIB) entry.o syscall_wrap.o
 
 %.x: %.b.c
 	echo cc1 $<

@@ -3,6 +3,14 @@
 #include <mmu.h>
 #include <env.h>
 
+#define debug 0
+
+#define MAXFD 32
+#define FILEBASE 0x60000000
+#define FDTABLE (FILEBASE-PDMAP)
+
+#define INDEX2FD(i)	(FDTABLE+(i)*BY2PG)
+#define INDEX2DATA(i)	(FILEBASE+(i)*PDMAP)
 
 static struct Dev *devtab[] = {
 	&devfile,
@@ -16,6 +24,7 @@ dev_lookup(int dev_id, struct Dev **dev)
 {
 	int i;
 
+	//writef("dev_lookup()VVVVVVVVVVVVVVVVVVVVVV\n");
 	for (i = 0; devtab[i]; i++)
 		if (devtab[i]->dev_id == dev_id) {
 			*dev = devtab[i];
@@ -29,6 +38,8 @@ dev_lookup(int dev_id, struct Dev **dev)
 int
 fd_alloc(struct Fd **fd)
 {
+	// Your code here.
+	//
 	// Find the smallest i from 0 to MAXFD-1 that doesn't have
 	// its fd page mapped.  Set *fd to the fd page virtual address.
 	// (Do not allocate a page.  It is up to the caller to allocate
@@ -39,6 +50,7 @@ fd_alloc(struct Fd **fd)
 	u_int va;
 	u_int fdno;
 
+	//writef("enter fd_alloc\n");
 	for (fdno = 0; fdno < MAXFD - 1; fdno++) {
 		va = INDEX2FD(fdno);
 
@@ -47,12 +59,14 @@ fd_alloc(struct Fd **fd)
 			return 0;
 		}
 
+		//writef("fd_alloc:va = %x\n",va);
 		if (((* vpt)[va / BY2PG] & PTE_V) == 0) {	//the fd is not used
 			*fd = (struct Fd *)va;
 			return 0;
 		}
 	}
 
+	//user_panic("fd_alloc not implemented");
 	return -E_MAX_OPEN;
 }
 
@@ -65,6 +79,8 @@ fd_close(struct Fd *fd)
 int
 fd_lookup(int fdnum, struct Fd **fd)
 {
+	// Your code here.
+	//
 	// Check that fdnum is in range and mapped.  If not, return -E_INVAL.
 	// Set *fd to the fd page virtual address.  Return 0.
 	u_int va;
@@ -80,6 +96,7 @@ fd_lookup(int fdnum, struct Fd **fd)
 		return 0;
 	}
 
+	//user_panic("fd_lookup not implemented");
 	return -E_INVAL;
 }
 
@@ -94,7 +111,6 @@ fd2num(struct Fd *fd)
 {
 	return ((u_int)fd - FDTABLE) / BY2PG;
 }
-
 int
 num2fd(int fd)
 {
@@ -135,11 +151,13 @@ dup(int oldfdnum, int newfdnum)
 	u_int ova, nva, pte;
 	struct Fd *oldfd, *newfd;
 
+	//writef("dup comes 1;\n");
 	if ((r = fd_lookup(oldfdnum, &oldfd)) < 0) {
 		return r;
 	}
 
 	close(newfdnum);
+	//writef("dup comes 2;\n");
 	newfd = (struct Fd *)INDEX2FD(newfdnum);
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
@@ -149,6 +167,7 @@ dup(int oldfdnum, int newfdnum)
 		goto err;
 	}
 
+	//writef("dup comes 2.5;\n");
 	if ((* vpd)[PDX(ova)]) {
 		for (i = 0; i < PDMAP; i += BY2PG) {
 			pte = (* vpt)[VPN(ova + i)];
@@ -163,9 +182,11 @@ dup(int oldfdnum, int newfdnum)
 		}
 	}
 
+	//writef("dup comes 3;\n");
 	return newfdnum;
 
 err:
+	//writef("dup comes 4;\n");
 	syscall_mem_unmap(0, (u_int)newfd);
 
 	for (i = 0; i < PDMAP; i += BY2PG) {
@@ -175,13 +196,6 @@ err:
 	return r;
 }
 
-// Overview:
-//	Read 'n' bytes from 'fd' at the current seek position into 'buf'.
-//
-// Post-Condition:
-//	Update seek position.
-//	Return the number of bytes read successfully.
-//		< 0 on error
 int
 read(int fdnum, void *buf, u_int n)
 {
@@ -189,29 +203,26 @@ read(int fdnum, void *buf, u_int n)
 	struct Dev *dev;
 	struct Fd *fd;
 
-	// Similar to 'write' function.
-	// Step 1: Get fd and dev.
+	//writef("read() come 1 %x\n",(int)env);
 	if ((r = fd_lookup(fdnum, &fd)) < 0
 		||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
 		return r;
 	}
 
-	// Step 2: Check open mode.
+	//writef("read() come 2 %x\n",(int)env);
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
-		writef("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
+		writef("[%08x] read %d -- bad mode\n", env->env_id, fdnum);
 		return -E_INVAL;
 	}
 
-	// Step 3: Read starting from seek position.
+	//writef("read() come 3 %x\n",(int)env);
 	r = (*dev->dev_read)(fd, buf, n, fd->fd_offset);
 
-	// Step 4: Update seek position and set '\0' at the end of buf.
-	if (r > 0) {
+	if (r >= 0) {
 		fd->fd_offset += r;
-		*((char*)buf+r) = '\0';
 	}
 
-
+	//writef("read() come 4 %x\n",(int)env);
 	return r;
 }
 
@@ -235,7 +246,6 @@ readn(int fdnum, void *buf, u_int n)
 	return tot;
 }
 
-//write from buff to fd;
 int
 write(int fdnum, const void *buf, u_int n)
 {
@@ -243,16 +253,19 @@ write(int fdnum, const void *buf, u_int n)
 	struct Dev *dev;
 	struct Fd *fd;
 
+	//writef("write comes 1\n");
 	if ((r = fd_lookup(fdnum, &fd)) < 0
 		||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0) {
 		return r;
 	}
 
+	//writef("write comes 2\n");
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
 		writef("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
 		return -E_INVAL;
 	}
 
+	//writef("write comes 3\n");
 	if (debug) writef("write %d %p %d via dev %s\n",
 						  fdnum, buf, n, dev->dev_name);
 
@@ -262,6 +275,7 @@ write(int fdnum, const void *buf, u_int n)
 		fd->fd_offset += r;
 	}
 
+	//writef("write comes 4\n");
 	return r;
 }
 
@@ -271,11 +285,14 @@ seek(int fdnum, u_int offset)
 	int r;
 	struct Fd *fd;
 
+	//writef("seek() come 1 %x\n",(int)env);
 	if ((r = fd_lookup(fdnum, &fd)) < 0) {
 		return r;
 	}
 
+	//writef("seek() come 2 %x\n",(int)env);
 	fd->fd_offset = offset;
+	//writef("seek() come 3 %x\n",(int)env);
 	return 0;
 }
 

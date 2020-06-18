@@ -106,3 +106,54 @@ nop
 		jr	k0			//
 		lw	sp,TF_REG29(sp)  /* Deallocate stack */  
 
+LEAF(syscall_ipc_can_multi_send)
+addu t0,a3,8
+sll t0,t0,2
+subu sp,sp,t0
+addiu t1,t0,-8
+addu t1,t1,sp
+sw  ra, 0(t1)
+sw  s0, 4(t1)
+
+move s0,t0
+addiu t0,t0,-8
+ori t1,zero,24
+
+
+sw a2,16(sp)
+sw a3,20(sp)
+move v0,a3
+move a2,a0
+move a3,a1
+ori a0,zero,0x2547
+addiu a1,v0,4
+
+
+
+for:
+bge t1,t0,end
+nop
+addu t2,t1,sp
+addiu t2,t2,-8
+addu t2,t2,s0
+lw t2, 0(t2)
+addu t3,t1,sp
+sw t2, 0(t3)
+addiu t1,t1,4
+j for
+nop 
+end:
+jal  msyscall
+nop
+move t0, s0
+
+
+addiu t1,t0,-8
+addu t1,t1,sp
+lw ra,0(t1)
+lw s0,4(t1)
+addu sp,sp,t0
+
+jr ra
+nop
+END(syscall_ipc_can_multi_send)

@@ -8,9 +8,6 @@ static int file_read(struct Fd *fd, void *buf, u_int n, u_int offset);
 static int file_write(struct Fd *fd, const void *buf, u_int n, u_int offset);
 static int file_stat(struct Fd *fd, struct Stat *stat);
 
-
-// Dot represents choosing the variable of the same name within struct declaration 
-// to assign, and no need to consider order of variables.
 struct Dev devfile = {
 	.dev_id =	'f',
 	.dev_name =	"file",
@@ -21,55 +18,72 @@ struct Dev devfile = {
 };
 
 
-// Overview:
-//	Open a file (or directory).
-//
-// Returns:
-//	the file descriptor onsuccess,
-//	< 0 on failure.
+// Open a file (or directory),
+// returning the file descriptor on success, < 0 on failure.
 int
 open(const char *path, int mode)
 {
+	// Your code here.
 	struct Fd *fd;
 	struct Filefd *ffd;
 	u_int size, fileid;
-	int ret;
+	int r;
 	u_int va;
 	u_int i;
 
-	// Step 1: Alloc a new Fd, return error code when fail to alloc.
-	// Hint: Please use fd_alloc.
-	//user_panic("fuck\n");
-	ret=fd_alloc(&fd);
-	if(ret<0) return ret;
-
-	// Step 2: Get the file descriptor of the file to open.
-	// Hint: Read fsipc.c, and choose a function.
-	ret=fsipc_open(path,mode,fd);
-	if(ret<0) return ret;
-
-	// Step 3: Set the start address storing the file's content. Set size and fileid correctly.
-	// Hint: Use fd2data to get the start address.
-	va=fd2data(fd);
-	ffd = (struct Filefd *)fd;	
-	fileid = ffd->f_fileid;
-	size = ffd->f_file.f_size;
-
-	// Step 4: Alloc memory, map the file content into memory.
-	for(i=0;i<size;i+=BY2BLK){
-		ret=fsipc_map(fileid,i,va+i);
-		if(ret<0) return ret;
+	//writef("IIIIIIIIIIIIIenter open\n");
+	//alloc a fd
+	if ((r = fd_alloc(&fd)) < 0) {
+		writef("Without free fd left\n");
+		return r;
 	}
 
-	// Step 5: Return the number of file descriptor.
+	//writef("IIIIIIIIIIIopen:come 1\n");
+	/*
+		if((r = syscall_mem_alloc(0, (u_int)fd, PTE_P|PTE_U|PTE_W))<0)
+		{
+			writef("cannot map the page where the fd locates\n");
+			return r;
+		}
+	writef("open:come 2\n");
+	*/
+	//fd is the file descriptor of the opened file
+	//writef("IIIIIIIIIIIopen:fd = %x\n",fd);
+	if ((r = fsipc_open(path, mode, fd)) < 0) {
+		writef("cannont open file %s\n", path);
+		return r;
+	}
+
+	va = fd2data(fd);	//the start address storing the file's content
+	ffd = (struct Filefd *)fd;
+	size = ffd->f_file.f_size;
+	fileid = ffd->f_fileid;
+	//writef("open:ffd = %x,	size = %x,	fileid=%d,	va =%x\n",(u_int)ffd, size, fileid,va);
+
+	//map the file content into memory
+	if (size == 0) {
+		return fd2num(fd);
+	}
+
+	for ( i = 0; i < size; i += BY2PG) {
+		if ((r = fsipc_map(fileid, i, va + i)) < 0) {
+			writef("cannot map the file.\n");
+			return r;
+		}
+
+		//writef("i=%x,	(* vpd)[PDX(%x)]&PTE_P=%x,	(* vpt)[VPN(%x)]&PTE_P=%x\n",i,va+i,(* vpd)[PDX(va+i)]&PTE_V,va+i,(* vpt)[VPN(va+i)]&PTE_V);
+	}
+
+	//writef("open:ffd = %x\n",(u_int)ffd);
 	return fd2num(fd);
+	//user_panic("open() unimplemented!");
 }
 
-// Overview:
-//	Close a file descriptor
+// Close a file descriptor
 int
 file_close(struct Fd *fd)
 {
+	// Your code here.
 	int r;
 	struct Filefd *ffd;
 	u_int va, size, fileid;
@@ -78,46 +92,52 @@ file_close(struct Fd *fd)
 	ffd = (struct Filefd *)fd;
 	fileid = ffd->f_fileid;
 	size = ffd->f_file.f_size;
+	va = fd2data(fd);       //the start address storing the file's content
 
-	// Set the start address storing the file's content.
-	va = fd2data(fd);
-
-	// Tell the file server the dirty page.
+	//tell the file server the dirty page.
 	for (i = 0; i < size; i += BY2PG) {
+		//our framework can't PTE_D
+		//if(((* vpt)[(va+i)/BY2PG] & PTE_D)!=0)
 		fsipc_dirty(fileid, i);
 	}
 
-	// Request the file server to close the file with fsipc.
+	//request the file server to close the file
 	if ((r = fsipc_close(fileid)) < 0) {
 		writef("cannot close the file\n");
 		return r;
 	}
 
-	// Unmap the content of file, release memory.
+	//unmap the content of file
 	if (size == 0) {
 		return 0;
 	}
+
 	for (i = 0; i < size; i += BY2PG) {
 		if ((r = syscall_mem_unmap(0, va + i)) < 0) {
 			writef("cannont unmap the file.\n");
 			return r;
 		}
 	}
+
+	//close the file descriptor
+	//fd_close(fd);
+
 	return 0;
+	//user_panic("close() unimplemented!");
 }
 
-// Overview:
-//	Read 'n' bytes from 'fd' at the current seek position into 'buf'. Since files
-//	are memory-mapped, this amounts to a user_bcopy() surrounded by a little red
-//	tape to handle the file size and seek pointer.
+// Read 'n' bytes from 'fd' at the current seek position into 'buf'.
+// Since files are memory-mapped, this amounts to a user_bcopy()
+// surrounded by a little red tape to handle the file size and seek pointer.
 static int
 file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
 {
 	u_int size;
 	struct Filefd *f;
+	//	writef("file_read() come 1\n");
 	f = (struct Filefd *)fd;
 
-	// Avoid reading past the end of file.
+	// avoid reading past the end of file
 	size = f->f_file.f_size;
 
 	if (offset > size) {
@@ -128,13 +148,16 @@ file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
 		n = size - offset;
 	}
 
+	// read the data by copying from the file mapping
+	//	writef("file_read(): bcopy(): src:%x  dst:%x  len:%x \n",(int)(char*)fd2data(fd)+offset, buf, n);
+
 	user_bcopy((char *)fd2data(fd) + offset, buf, n);
+	//	writef("file_read() come 2\n");
 	return n;
 }
 
-// Overview:
-//	Find the virtual address of the page that maps the file block
-//	starting at 'offset'.
+// Find the virtual address of the page
+// that maps the file block starting at 'offset'.
 int
 read_map(int fdnum, u_int offset, void **blk)
 {
@@ -156,6 +179,7 @@ read_map(int fdnum, u_int offset, void **blk)
 		return -E_NO_DISK;
 	}
 
+	//writef("offset=%x,      va=%x,  (* vpd)[PDX(va)]&PTE_P=%x,  (* vpt)[VPN(va)]&PTE_P=%x\n",offset,va,(* vpd)[PDX(va)]&PTE_V,(* vpt)[VPN(va)]&PTE_V);
 	if (!((* vpd)[PDX(va)]&PTE_V) || !((* vpt)[VPN(va)]&PTE_V)) {
 		return -E_NO_DISK;
 	}
@@ -164,8 +188,7 @@ read_map(int fdnum, u_int offset, void **blk)
 	return 0;
 }
 
-// Overview:
-//	Write 'n' bytes from 'buf' to 'fd' at the current seek position.
+// Write 'n' bytes from 'buf' to 'fd' at the current seek position.
 static int
 file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 {
@@ -175,21 +198,21 @@ file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 
 	f = (struct Filefd *)fd;
 
-	// Don't write more than the maximum file size.
+	// don't write past the maximum file size
 	tot = offset + n;
 
 	if (tot > MAXFILESIZE) {
 		return -E_NO_DISK;
 	}
 
-	// Increase the file's size if necessary
+	// increase the file's size if necessary
 	if (tot > f->f_file.f_size) {
 		if ((r = ftruncate(fd2num(fd), tot)) < 0) {
 			return r;
 		}
 	}
 
-	// Write the data
+	// write the data
 	user_bcopy(buf, (char *)fd2data(fd) + offset, n);
 	return n;
 }
@@ -207,8 +230,7 @@ file_stat(struct Fd *fd, struct Stat *st)
 	return 0;
 }
 
-// Overview:
-//	Truncate or extend an open file to 'size' bytes
+// Truncate or extend an open file to 'size' bytes
 int
 ftruncate(int fdnum, u_int size)
 {
@@ -232,7 +254,6 @@ ftruncate(int fdnum, u_int size)
 	f = (struct Filefd *)fd;
 	fileid = f->f_fileid;
 	oldsize = f->f_file.f_size;
-	f->f_file.f_size = size;
 
 	if ((r = fsipc_set_size(fileid, size)) < 0) {
 		return r;
@@ -257,60 +278,17 @@ ftruncate(int fdnum, u_int size)
 	return 0;
 }
 
-// Overview:
-//	Delete a file or directory.
+// Delete a file
 int
 remove(const char *path)
 {
-	// Your code here.
-	// Call fsipc_remove.
 	return fsipc_remove(path);
-	
 }
 
-// Overview:
-//	Synchronize disk with buffer cache
+// Synchronize disk with buffer cache
 int
 sync(void)
 {
 	return fsipc_sync();
-}
-
-int print_file(int fd_id,int length){
-	struct Filefd *ffd;
-	struct Fd *fd;
-	int ret;
-	int i;
-
-	ret = fd_lookup(fd_id,&fd);
-	if(ret<0) return ret;
-	char *buf=fd2data(fd);
-	//writef("begin!!!\n");
-	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY)
-		return -E_INVAL;
-	for(i=0;i<length;i++){
-		ret=syscall_write_dev(buf+i,0x10000000,1);
-		if(ret<0) return ret;
-	}
-	ffd = (struct Filefd*)fd;
-
-	return ++ffd->f_file.f_printcount;
-	
-}
-int modify_file(int fd_id,char * buf,int length){
-	struct Filefd *ffd ;
-	struct Fd *fd;
-	int ret;
-	//writef("%x\n",&file);
-	ret = fd_lookup(fd_id,&fd);
-	if(ret<0) return ret;
-
-	fd->fd_offset = 0;
-	ret=write(fd_id,buf,length);
-	if(ret<0) return ret;
-
-	ffd = (struct Filefd*)fd;
-	return ++ffd->f_file.f_modifycount;
-
 }
 

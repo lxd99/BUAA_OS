@@ -15,17 +15,20 @@ void
 ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 {
 	int r;
+	writef("%x\n",env);
 
-	while ((r = syscall_ipc_can_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV) {
+	while ((r = syscall_ipc_can_multi_send(val, srcva, perm,1,whom)) == -E_IPC_NOT_RECV) {
+		writef("dick!\n");
 		syscall_yield();
 		//writef("QQ");
 	}
 
+	writef("r is %x\n",r);
 	if (r == 0) {
 		return;
 	}
 
-	user_panic("error in ipc_send: %d to whom %x\n", r,whom);
+	user_panic("error in ipc_send: %d", r);
 }
 
 // Receive a value.  Return the value and store the caller's envid
@@ -37,15 +40,28 @@ ipc_recv(u_int *whom, u_int dstva, u_int *perm)
 {
 	//printf("ipc_recv:come 0\n");
 	syscall_ipc_recv(dstva);
+	writef("recv_finish,whom is %x,perm is %x\n",whom,perm);
 
 	if (whom) {
+		writef("%x\n",env);
+		syscall_getenvid();
 		*whom = env->env_ipc_from;
 	}
+	//writef("whom finish\n");
 
 	if (perm) {
 		*perm = env->env_ipc_perm;
 	}
 
 	return env->env_ipc_value;
+}
+int ipc_send_double(u_int envid_1,u_int envid_2, int value ,u_int srcva, u_int perm){
+	int r=0;
+	while((r=syscall_ipc_can_multi_send(value,srcva,perm,2,envid_1,envid_2))==-E_IPC_NOT_RECV) {
+	writef("yeidl!\n");
+	syscall_yield();
+	}
+	writef("end!\n");
+	return r;
 }
 

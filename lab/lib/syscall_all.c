@@ -65,6 +65,7 @@ u_int sys_getenvid(void)
 /*** exercise 4.6 ***/
 void sys_yield(void)
 {
+	printf("yield at %x\n",curenv->env_id);
        	 bcopy((void *)KERNEL_SP - sizeof(struct Trapframe),
 		 (void*)(TIMESTACK - sizeof(struct Trapframe)),
              	 sizeof(struct Trapframe));
@@ -203,7 +204,7 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 
     //your code here
     //add *ppte pd;
-    	if( srcva>=UTOP||dstva>=UTOP) return -E_INVAL; 
+    	if( srcva>=UTOP||dstva>=UTOP||srcva<0||dstva<0) return -E_INVAL; 
     	ret = envid2env(srcid,&srcenv,0);
 	CHE(ret);
 	ret = envid2env(dstid,&dstenv,0);
@@ -365,6 +366,7 @@ void sys_panic(int sysno, char *msg)
 /*** exercise 4.7 ***/
 void sys_ipc_recv(int sysno, u_int dstva)
 {
+	printf("icp_rec:%x\n",curenv->env_id);
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 
@@ -410,6 +412,9 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	e->env_ipc_perm = perm;
 	e->env_ipc_from = curenv->env_id;
 	if(srcva!=0){
+		Pte * pte;
+		p = page_lookup(e->env_pgdir,srcva,&pte);		
+		if(p==0) return  -E_INVAL;
 		ret=sys_mem_map(sysno,0,srcva,envid,e->env_ipc_dstva,perm);
 		CHE(ret);
 	}
@@ -418,75 +423,38 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	//env_ipc_from,srcva,page 
 	return 0;
 }
-
-/* Overview:
- * 	This function is used to write data to device, which is
- * 	represented by its mapped physical address.
- *	Remember to check the validity of device address (see Hint below);
- * 
- * Pre-Condition:
- *      'va' is the startting address of source data, 'len' is the
- *      length of data (in bytes), 'dev' is the physical address of
- *      the device
- * 	
- * Post-Condition:
- *      copy data from 'va' to 'dev' with length 'len'
- *      Return 0 on success.
- *	Return -E_INVAL on address error.
- *      
- * Hint: Use ummapped segment in kernel address space to perform MMIO.
- *	 Physical device address:
- *	* ---------------------------------*
- *	|   device   | start addr | length |
- *	* -----------+------------+--------*
- *	|  console   | 0x10000000 | 0x20   |
- *	|    IDE     | 0x13000000 | 0x4200 |
- *	|    rtc     | 0x15000000 | 0x200  |
- *	* ---------------------------------*
- */
-int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
-{
-        // Your code here
-	if(dev>=0x15000000){
-		if( dev+len>=0x15000200) return -E_INVAL;
-	}else if(dev>=0x13000000){
-		if(dev+len>0x13004200) return -E_INVAL;
-	}else if(dev>=0x10000000){
-		if(dev+len>0x10000020) return -E_INVAL;
-	}else{	return -E_INVAL; }
-
-	bcopy(va,dev+0xa0000000,len);
-	return 0;
-}
-
-/* Overview:
- * 	This function is used to read data from device, which is
- * 	represented by its mapped physical address.
- *	Remember to check the validity of device address (same as sys_read_dev)
- * 
- * Pre-Condition:
- *      'va' is the startting address of data buffer, 'len' is the
- *      length of data (in bytes), 'dev' is the physical address of
- *      the device
- * 
- * Post-Condition:
- *      copy data from 'dev' to 'va' with length 'len'
- *      Return 0 on success, < 0 on error
- *      
- * Hint: Use ummapped segment in kernel address space to perform MMIO.
- */
-int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
-{
-        // Your code here
-	if(dev>=0x15000000){
-		if( dev+len>=0x15000200) return -E_INVAL;
-	}else if(dev>=0x13000000){
-		if(dev+len>0x13004200) return -E_INVAL;
-	}else if(dev>=0x10000000){
-		if(dev+len>0x10000020) return -E_INVAL;
-	}else{	return -E_INVAL; }
-
-	bcopy(dev+0xa0000000,va,len);
-
+int sys_ipc_can_multi_send(int sysno,u_int value,u_int srcva,u_int perm,int env_count,...){
+	printf("sysno is:%x value is:%x srcva is:%x perm is:%x env_count is :%x\n",sysno,value,srcva,perm,env_count);
+	int x,i,ret=0;
+	va_list ap;
+	struct Env* e;
+	struct Page * p;
+	va_start(ap,env_count);
+	for(i=1;i<=env_count;i++){
+		x = va_arg(ap,int);
+		printf("%x\n",x);
+		envid2env(x,&e,0);
+		printf("%x\n",x);
+		if(envid2env(x,&e,0)<0||e->env_ipc_recving !=1 ) return -E_IPC_NOT_RECV;
+	}
+	va_start(ap,env_count);
+	for(i=1;i<=env_count;i++){
+		x = va_arg(ap,int); 
+		envid2env(x,&e,0);
+		e->env_ipc_value = value;
+		e->env_ipc_recving = 0;
+		e->env_ipc_perm = perm;
+		e->env_ipc_from = curenv->env_id;
+		if(srcva!=0){
+			Pte * pte;
+			p = page_lookup(e->env_pgdir,srcva,&pte);		
+			if(p==0) return  -E_INVAL;
+			ret=sys_mem_map(sysno,0,srcva,x,e->env_ipc_dstva,perm);
+			CHE(ret);
+		}
+		ret = sys_set_env_status(sysno,e->env_id,ENV_RUNNABLE);
+		CHE(ret);
+	}	
+	printf("succeed!\n");
 	return 0;
 }
