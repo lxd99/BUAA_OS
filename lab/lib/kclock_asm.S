@@ -22,6 +22,7 @@ LEAF(set_timer)
 	sw	sp, KERNEL_SP
 setup_c0_status STATUS_CU0|0x1001 0
 	jr ra
-
 	nop
 END(set_timer)
+
+

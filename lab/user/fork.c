@@ -4,10 +4,6 @@
 #include <mmu.h>
 #include <env.h>
 #include <printf.h>
-#define MAXFD 32
-#define FILEBASE 0x60000000
-#define FDTABLE (FILEBASE-PDMAP)
-
 
 
 /* ----------------- help functions ---------------- */
@@ -87,23 +83,24 @@ void user_bzero(void *v, u_int n)
 static void
 pgfault(u_int va)
 {
-	//writef("pgfault! %x\n",va);
+	writef("pgfault! %x\n",va);
 	u_int *tmp;
+	u_int id = syscall_getenvid();
 	//	writef("fork.c:pgfault():\t va:%x\n",va);
 	if(((*vpt)[va>>PGSHIFT]&PTE_COW)==0)
 		user_panic("NOT_COW_ERROE!");
     
     //map the new page at a temporary place
     va = ROUNDDOWN(va,BY2PG);
-    syscall_mem_alloc(0,USTACKTOP,PTE_V|PTE_R);
+    syscall_mem_alloc(id,USTACKTOP,PTE_V|PTE_R);
 
 	//copy the content
     user_bcopy(va,USTACKTOP,BY2PG);
 	
     //map the page on the appropriate place
-    syscall_mem_map(0,USTACKTOP,0,va,PTE_V|PTE_R);
+    syscall_mem_map(id,USTACKTOP,id,va,PTE_V|PTE_R);
     //unmap the temporary place
-    syscall_mem_unmap(0,USTACKTOP);
+    syscall_mem_unmap(id,USTACKTOP);
 	
 }
 
@@ -204,7 +201,7 @@ fork(void)
             syscall_set_pgfault_handler(newenvid, __asm_pgfault_handler, UXSTACKTOP); 
 	    syscall_set_env_status(newenvid,ENV_RUNNABLE);
 	}
-	//writef("forkend!\n");
+	writef("forkend!\n");
 	return newenvid;
 }
 

@@ -56,8 +56,8 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
      //printf("count: %d point: %d\n",count,point);
-    /* LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
-     	if(ee->env_status==ENV_RUNNABLE) break;	*/
+     //LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
+     //	if(ee->env_status==ENV_RUNNABLE) break;	
 
      if(ee==NULL){	
     	point = 1-point; 

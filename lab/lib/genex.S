@@ -14,7 +14,7 @@
 .macro	BUILD_HANDLER exception handler clear
 	.align	5
 	NESTED(handle_\exception, TF_SIZE, sp)  
-	//.set	noat
+	.set	noat
 
 nop
 
@@ -46,7 +46,7 @@ FEXPORT(ret_from_exception)
 .set noreorder
 .align	5
 NESTED(handle_int, TF_SIZE, sp)
-//.set	noat
+.set	noat
 
 //1: j 1b
 nop
@@ -60,6 +60,16 @@ and	t0, t2
 
 andi	t1, t0, STATUSF_IP4
 bnez	t1, timer_irq
+nop
+
+
+li  a0,0xb0000000
+lw a0,0(a0)
+andi a0,0xff
+mfc0 a1,CP0_STATUS
+jal     handle_cons_ir
+nop
+j ret_from_exception
 nop
 END(handle_int)
 

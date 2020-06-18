@@ -144,6 +144,11 @@ dup(int oldfdnum, int newfdnum)
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
+	if ((r = syscall_mem_map(0, (u_int)oldfd, 0, (u_int)newfd,
+							 ((*vpt)[VPN(oldfd)]) & (PTE_V | PTE_R | PTE_LIBRARY))) < 0) {
+		goto err;
+	}
+
 	if ((* vpd)[PDX(ova)]) {
 		for (i = 0; i < PDMAP; i += BY2PG) {
 			pte = (* vpt)[VPN(ova + i)];
@@ -157,15 +162,12 @@ dup(int oldfdnum, int newfdnum)
 			}
 		}
 	}
-	if ((r = syscall_mem_map(0, (u_int)oldfd, 0, (u_int)newfd,
-							 ((*vpt)[VPN(oldfd)]) & (PTE_V | PTE_R | PTE_LIBRARY))) < 0) {
-		goto err;
-	}
 
 	return newfdnum;
 
 err:
 	syscall_mem_unmap(0, (u_int)newfd);
+
 	for (i = 0; i < PDMAP; i += BY2PG) {
 		syscall_mem_unmap(0, nva + i);
 	}
@@ -201,9 +203,6 @@ read(int fdnum, void *buf, u_int n)
 	}
 
 	// Step 3: Read starting from seek position.
-	if (debug) writef("write %d %p %d via dev %s\n",
-						  fdnum, buf, n, dev->dev_name);
-
 	r = (*dev->dev_read)(fd, buf, n, fd->fd_offset);
 
 	// Step 4: Update seek position and set '\0' at the end of buf.
@@ -211,6 +210,7 @@ read(int fdnum, void *buf, u_int n)
 		fd->fd_offset += r;
 		*((char*)buf+r) = '\0';
 	}
+
 
 	return r;
 }

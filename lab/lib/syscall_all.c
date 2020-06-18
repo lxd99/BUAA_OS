@@ -154,6 +154,9 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	int ret;
 	
 	if(perm&PTE_COW || !(perm&PTE_V)|| va>=UTOP ) return -E_INVAL;
+	//printf("sys_mem_alloc:%x\n ",curenv->env_pgdir);
+	//envid2env(envid,&env,0);
+	//printf("curid:%x getid:%x\n",curenv->env_id,env->env_id);
 
 	ret = envid2env(envid,&env,0);
 	CHE(ret);
@@ -161,15 +164,11 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	CHE(ret);
 	ret= page_insert(env->env_pgdir,ppage,va,perm);
 	CHE(ret);
-
-	/*Pte * dick = UVPT;
-	dick = UVPT;
-	dick= dick+VPN(va);
-	u_int pte = *dick;
-	struct Page * mpage = UPAGES;
-	mpage  =mpage+ PPN(pte);
-	printf("sys_mem_alloc at %x ref is %x %x\n",va,ppage-pages,mpage->pp_ref);*/
+	//printf("sys_mem_alloc at %x\n",va);
 	return 0;	
+	
+
+
 }
 
 /* Overview:
@@ -214,7 +213,7 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	ppage = page_lookup(srcenv->env_pgdir,round_srcva,&ppte);
 	if(ppage==0) return -E_INVAL;
 
-	//if(!(*ppte &PTE_R)&&(perm&PTE_R)) return -E_INVAL;
+	if(!(*ppte &PTE_R)&&(perm&PTE_R)) return -E_INVAL;
 
 	ret=  page_insert(dstenv->env_pgdir,ppage,round_dstva,perm);
 	CHE(ret);

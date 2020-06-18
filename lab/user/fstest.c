@@ -17,8 +17,21 @@ void umain()
         }
         fdnum = r;
         writef("open is good\n");
+	buf[0]='d';
+	buf[1]='i';
+	buf[2]='c';
+	buf[3]='k';
+	writef("print at:%x\n",print_file(r,5));
+	
+	writef("modify at:%x\n",modify_file(r,buf,4));
 
-        if ((n = read(fdnum, buf, 511)) < 0) {
+	writef("print at %x\n",print_file(r,5));
+
+
+
+	//scanf();
+
+       /* if ((n = read(fdnum, buf, 511)) < 0) {
                 user_panic("read /newmotd: %d", r);
         }
         if (strcmp(buf, diff_msg) != 0) {
@@ -67,7 +80,7 @@ void umain()
 	writef("file remove: OK\n");
         while (1) {
                 //writef("IDLE!");
-        }
+        }*/
 }
 
 

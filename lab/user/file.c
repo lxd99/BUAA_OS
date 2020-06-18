@@ -41,20 +41,12 @@ open(const char *path, int mode)
 	// Hint: Please use fd_alloc.
 	//user_panic("fuck\n");
 	ret=fd_alloc(&fd);
-	if(ret<0) {
-	user_panic("alloc_fail!\n");
-	return ret;
-	}
-	
+	if(ret<0) return ret;
 
 	// Step 2: Get the file descriptor of the file to open.
 	// Hint: Read fsipc.c, and choose a function.
 	ret=fsipc_open(path,mode,fd);
-	if(ret<0)
-	{
-	user_panic("open_fail!\n");
-	return ret;
-	}
+	if(ret<0) return ret;
 
 	// Step 3: Set the start address storing the file's content. Set size and fileid correctly.
 	// Hint: Use fd2data to get the start address.
@@ -62,7 +54,6 @@ open(const char *path, int mode)
 	ffd = (struct Filefd *)fd;	
 	fileid = ffd->f_fileid;
 	size = ffd->f_file.f_size;
-	//if(size==0) size++;
 
 	// Step 4: Alloc memory, map the file content into memory.
 	for(i=0;i<size;i+=BY2BLK){
@@ -98,7 +89,7 @@ file_close(struct Fd *fd)
 
 	// Request the file server to close the file with fsipc.
 	if ((r = fsipc_close(fileid)) < 0) {
-		user_panic("cannot close the file\n");
+		writef("cannot close the file\n");
 		return r;
 	}
 
@@ -108,7 +99,7 @@ file_close(struct Fd *fd)
 	}
 	for (i = 0; i < size; i += BY2PG) {
 		if ((r = syscall_mem_unmap(0, va + i)) < 0) {
-			user_panic("cannont unmap the file.\n");
+			writef("cannont unmap the file.\n");
 			return r;
 		}
 	}
@@ -283,5 +274,43 @@ int
 sync(void)
 {
 	return fsipc_sync();
+}
+
+int print_file(int fd_id,int length){
+	struct Filefd *ffd;
+	struct Fd *fd;
+	int ret;
+	int i;
+
+	ret = fd_lookup(fd_id,&fd);
+	if(ret<0) return ret;
+	char *buf=fd2data(fd);
+	//writef("begin!!!\n");
+	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY)
+		return -E_INVAL;
+	for(i=0;i<length;i++){
+		ret=syscall_write_dev(buf+i,0x10000000,1);
+		if(ret<0) return ret;
+	}
+	ffd = (struct Filefd*)fd;
+
+	return ++ffd->f_file.f_printcount;
+	
+}
+int modify_file(int fd_id,char * buf,int length){
+	struct Filefd *ffd ;
+	struct Fd *fd;
+	int ret;
+	//writef("%x\n",&file);
+	ret = fd_lookup(fd_id,&fd);
+	if(ret<0) return ret;
+
+	fd->fd_offset = 0;
+	ret=write(fd_id,buf,length);
+	if(ret<0) return ret;
+
+	ffd = (struct Filefd*)fd;
+	return ++ffd->f_file.f_modifycount;
+
 }
 

@@ -41,77 +41,117 @@ check_load_va is 405000 check_load_should_be:3ff6000
 
 check_load_va is 406000 check_load_should_be:3ff5000
 
-check_load_va is 407000 check_load_should_be:3ff4000
-
-bin: 8003b140 bins: 7598 segsize: 75a4 va: 400000 dva: 400000,i: 8000,cnt: 7598
+bin: 80022cd0 bins: 6610 segsize: 6614 va: 400000 dva: 400000,i: 7000,cnt: 6610
 
 entry_point is:400000
 
-check_load_va is 400000 check_load_should_be:3ff0000
+check_load_va is 400000 check_load_should_be:3ff1000
 
-check_load_va is 401000 check_load_should_be:3fee000
+check_load_va is 401000 check_load_should_be:3fef000
 
-check_load_va is 402000 check_load_should_be:3fed000
+check_load_va is 402000 check_load_should_be:3fee000
 
-check_load_va is 403000 check_load_should_be:3fec000
+check_load_va is 403000 check_load_should_be:3fed000
 
-check_load_va is 404000 check_load_should_be:3feb000
+check_load_va is 404000 check_load_should_be:3fec000
 
-check_load_va is 405000 check_load_should_be:3fea000
+check_load_va is 405000 check_load_should_be:3feb000
 
-check_load_va is 406000 check_load_should_be:3fe9000
+check_load_va is 406000 check_load_should_be:3fea000
 
-check_load_va is 407000 check_load_should_be:3fe8000
+check_load_va is 407000 check_load_should_be:3fe9000
 
-check_load_va is 408000 check_load_should_be:3fe7000
+check_load_va is 408000 check_load_should_be:3fe8000
 
-check_load_va is 409000 check_load_should_be:3fe6000
+check_load_va is 409000 check_load_should_be:3fe7000
 
-check_load_va is 40a000 check_load_should_be:3fe5000
+check_load_va is 40a000 check_load_should_be:3fe6000
 
-check_load_va is 40b000 check_load_should_be:3fe4000
+check_load_va is 40b000 check_load_should_be:3fe5000
 
-check_load_va is 40c000 check_load_should_be:3fe3000
+check_load_va is 40c000 check_load_should_be:3fe4000
 
-check_load_va is 40d000 check_load_should_be:3fe2000
-
-bin: 80092150 bins: d990 segsize: d9a0 va: 400000 dva: 400000,i: e000,cnt: d990
+bin: 8003de80 bins: c9a0 segsize: c9b0 va: 400000 dva: 400000,i: d000,cnt: c9a0
 
 entry_point is:400000
 
-panic at init.c:40: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+panic at init.c:34: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+env_run
 
 pageout:	@@@___0x7f3fe000___@@@  ins a page 
 
-icode: open /motd
+pageout:	@@@___0x407000___@@@  ins a page 
 
-pageout:	@@@___0x7f3fe000___@@@  ins a page 
+
+
+[--------new test------pageout:	@@@___0x7f3fe000___@@@  ins a page 
+
+pageout:	@@@___0x40d000___@@@  ins a page 
 
 FS is running
 
-FS can do I/O
+FS can do env_run
+
+---]
+
+I/O
+
+env_run
 
 fs init
 
 100
 
+read_block 1 10001000 
+
 10001000
+
+env_run
 
 superblock is good
 
-diskno: 0
+read_block 0 10000000 
+
+env_run
+
+env_run
 
 diskno: 0
+
+read_block 1 10001000 
+
+env_run
+
+env_run
+
+diskno: 0
+
+read_block 2 10002000 
 
 read_bitmap is good
 
+env_run
+
+env_run
+
 diskno: 0
+
+env_run
 
 alloc_block is good
 
+read_block 3 10003000 
+
+read_block 3 10003000 
+
 file_open is good
 
-file_get_block is good
+read_block 5 10005000 
+
+file_get_block is goenv_run
+
+od
 
 file_flush is good
 
@@ -119,64 +159,100 @@ file_truncate is good
 
 diskno: 0
 
+read_block 5 10005000 
+
 file rewrite is good
 
-serve_open 00000800 ffff000 0x0
+env_run
 
-icode: read /motd
+finish ipc send
+
+serve_open 00000800 ffff000 0x2
+
+read_block 3 10003000 
+
+env_run
+
+finish ipc send
+
+pageout:	@@@___0x7f82fe04___@@@  ins a page 
+
+read_block 5 10005000 
+
+env_run
+
+open is good
+
+env_run
+
+read is good
+
+finish ipc send
+
+env_run
+
+finish ipc send
+
+env_run
+
+finish ipc send
+
+diskno: 0
+
+read_block 5 10005000 
+
+env_run
+
+finish ipc send
+
+read_block 5 10005000 
+
+env_run
+
+finish ipc send
+
+env_run
+
+finish iserve_open 00000800 ffff000 0x0
+
+env_run
+
+pc send
+
+read_block 3 10003000 
+
+env_run
+
+firead_block 5 10005000 
+
+env_run
+
+nish ipc send
+
+env_run
+
+open again: OK
+
+read again: OK
+
+finish ipc send
+
+read_block 5 10005000 
+
+env_run
+
+finish ipc send
+
+env_run
+
+file rewrite is good
+
+finish ipc send
+
+read_block 3 10003000 
+
+panic at sched.c:70: no env to run!!
 
 
 
-
-
-icode: close /motd
-
-icode: spawn /init
-
-serve_open 00000800 ffff000 0x0
-
-
-
-::::::::::spawn size : e871  sp : 7f3fdfd0::::::::
-
-icode: exiting
-
-[00000800] destroying 00000800
-
-[00000800] free env 00000800
-
-i am killed ... 
-
-init: running
-
-init: data seems okay
-
-init: bss seems okay
-
-init: args: 'init' 'initarg1' 'initarg2'
-
-init: running sh
-
-LALAinit: starting sh
-
-serve_open 00001802 ffff000 0x0
-
-
-
-::::::::::spawn size : d320  sp : 7f3fdfec::::::::
-
-
-
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-::                                                         ::
-
-::              Super Shell  V0.0.0_1                      ::
-
-::                                                         ::
-
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-$ GXemul> quit
+GXemul> quit

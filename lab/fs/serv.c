@@ -79,9 +79,7 @@ open_lookup(u_int envid, u_int fileid, struct Open **po)
 
 	o = &opentab[fileid % MAXOPEN];
 
-
 	if (pageref(o->o_ff) == 1 || o->o_fileid != fileid) {
-		writef("fail at id is %x fileid is %x ref is %x\n",envid,fileid,pageref(o->o_ff));
 		return -E_INVAL;
 	}
 
@@ -111,7 +109,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	// Find a file id.
 	if ((r = open_alloc(&o)) < 0) {
-		//user_panic("open_alloc failed: %d, invalid path: %s", r, path);
+		user_panic("open_alloc failed: %d, invalid path: %s", r, path);
 		ipc_send(envid, r, 0, 0);
 	}
 
@@ -119,7 +117,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	// Open the file.
 	if ((r = file_open((char *)path, &f)) < 0) {
-		//user_panic("file_open failed: %d, invalid path: %s", r, path);
+	//	user_panic("file_open failed: %d, invalid path: %s", r, path);
 		ipc_send(envid, r, 0, 0);
 		return ;
 	}
@@ -217,9 +215,6 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 	// Step 2: Remove file from file system and response to user-level process.
 	// Call file_remove and ipc_send an approprite value to corresponding env.
 	ret=file_remove(path);
-	if(ret<0){
-		ipc_send(envid,r,0,0);
-	}
 	ipc_send(envid,ret,0,0);
 }
 

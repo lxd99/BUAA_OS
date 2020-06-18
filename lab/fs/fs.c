@@ -141,8 +141,7 @@ read_block(u_int blockno, void **blk, u_int *isnew)
 	// Hint: if this block is already mapped, just set *isnew, else alloc memory and
 	// read data from IDE disk (use `syscall_mem_alloc` and `ide_read`).
 	// We have only one IDE disk, so the diskno of ide_read should be 0.
-	
-	//writef("read_block %x %x \n",blockno,va);
+	writef("read_block %x %x \n",blockno,va);
 	if (block_is_mapped(blockno)) {	//the block is in memory
 		if (isnew) {
 			*isnew = 0;
@@ -177,7 +176,6 @@ write_block(u_int blockno)
 	// Step2: write data to IDE disk. (using ide_write, and the diskno is 0)
 	va = diskaddr(blockno);
 	ide_write(0, blockno * SECT2BLK, (void *)va, SECT2BLK);
-	//user_panic("fuck!!\n");
 
 	syscall_mem_map(0, va, 0, va, (PTE_V | PTE_R | PTE_LIBRARY));
 }
@@ -544,7 +542,7 @@ dir_lookup(struct File *dir, char *name, struct File **file)
 	struct File *f;
 
 	// Step 1: Calculate nblock: how many blocks this dir have.
-	nblock = ROUND(dir->f_size,BY2BLK)/BY2BLK;
+	nblock = dir->f_size / BY2BLK;
 
 	for (i = 0; i < nblock; i++) {
 		// Step 2: Read the i'th block of the dir.

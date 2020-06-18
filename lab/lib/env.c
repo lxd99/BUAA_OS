@@ -208,7 +208,6 @@ env_alloc(struct Env **new, u_int parent_id)
     e->env_parent_id = parent_id;
     e->env_tf.regs[29] = USTACKTOP; 
     e->env_status = ENV_RUNNABLE;
-    e->env_runs = 0;
 
 
     /*Step 4: Focus on initializing the sp register and cp0_status of env_tf field, located at this new Env. */
@@ -255,7 +254,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     for (i = 0; cnt<bin_size; i += BY2PG) {
         /* Hint: You should alloc a new page. */
 	if(page_alloc(&p)!=0) return -1;
-	//p->pp_ref++;
+	p->pp_ref++;
         //閹绘帒鍙?
 	r = i==0?offset:0;
 	pos = page2kva(p);
@@ -271,7 +270,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     sgsize += offset;
     while (i < sgsize) {
 	if(page_alloc(&p)!=0) return -1;
-	//p->pp_ref++;
+	p->pp_ref++;
 	page_insert(env->env_pgdir,p,dva+i,PTE_R);
 	i += BY2PG;
     }
@@ -464,7 +463,6 @@ env_run(struct Env *e)
     curenv = e;
     if(e==NULL) return;
     curenv->env_status = ENV_RUNNABLE;
-    curenv->env_runs++;
    
     /*Step 3: Use lcontext() to switch to its address space. */
 //    printf("set_context\n");
