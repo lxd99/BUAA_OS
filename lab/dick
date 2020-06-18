@@ -1,0 +1,182 @@
+GXemul 0.4.6    Copyright (C) 2003-2007  Anders Gavare
+Read the source code and/or documentation for other Copyright messages.
+
+Simple setup...
+    net: simulating 10.0.0.0/8 (max outgoing: TCP=100, UDP=100)
+        simulated gateway: 10.0.0.254 (60:50:40:30:20:10)
+            using nameserver 192.168.128.254
+    machine "default":
+        memory: 64 MB
+        cpu0: R3000 (I+D = 4+4 KB)
+        machine: MIPS test machine
+        diskimage: gxemul/fs.img
+            IDE DISK id 0, read/write, 4 MB (8192 sectors)
+        loading gxemul/vmlinux
+        starting cpu0 at 0x80010000
+-------------------------------------------------------------------------------
+
+main.c:	main is start ...
+
+init.c:	mips_init() is called
+
+Physical memory: 65536K available, base = 65536K, extended = 0K
+
+to memory 80401000 for struct page directory.
+
+to memory 80431000 for struct Pages.
+
+pmap.c:	 mips vm init success
+
+check_load_va is 400000 check_load_should_be:3ffc000
+
+check_load_va is 401000 check_load_should_be:3ffa000
+
+check_load_va is 402000 check_load_should_be:3ff9000
+
+check_load_va is 403000 check_load_should_be:3ff8000
+
+check_load_va is 404000 check_load_should_be:3ff7000
+
+check_load_va is 405000 check_load_should_be:3ff6000
+
+check_load_va is 406000 check_load_should_be:3ff5000
+
+check_load_va is 407000 check_load_should_be:3ff4000
+
+bin: 8003b140 bins: 7598 segsize: 75a4 va: 400000 dva: 400000,i: 8000,cnt: 7598
+
+entry_point is:400000
+
+check_load_va is 400000 check_load_should_be:3ff0000
+
+check_load_va is 401000 check_load_should_be:3fee000
+
+check_load_va is 402000 check_load_should_be:3fed000
+
+check_load_va is 403000 check_load_should_be:3fec000
+
+check_load_va is 404000 check_load_should_be:3feb000
+
+check_load_va is 405000 check_load_should_be:3fea000
+
+check_load_va is 406000 check_load_should_be:3fe9000
+
+check_load_va is 407000 check_load_should_be:3fe8000
+
+check_load_va is 408000 check_load_should_be:3fe7000
+
+check_load_va is 409000 check_load_should_be:3fe6000
+
+check_load_va is 40a000 check_load_should_be:3fe5000
+
+check_load_va is 40b000 check_load_should_be:3fe4000
+
+check_load_va is 40c000 check_load_should_be:3fe3000
+
+check_load_va is 40d000 check_load_should_be:3fe2000
+
+bin: 80092150 bins: d990 segsize: d9a0 va: 400000 dva: 400000,i: e000,cnt: d990
+
+entry_point is:400000
+
+panic at init.c:40: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pageout:	@@@___0x7f3fe000___@@@  ins a page 
+
+icode: open /motd
+
+pageout:	@@@___0x7f3fe000___@@@  ins a page 
+
+FS is running
+
+FS can do I/O
+
+fs init
+
+100
+
+10001000
+
+superblock is good
+
+diskno: 0
+
+diskno: 0
+
+read_bitmap is good
+
+diskno: 0
+
+alloc_block is good
+
+file_open is good
+
+file_get_block is good
+
+file_flush is good
+
+file_truncate is good
+
+diskno: 0
+
+file rewrite is good
+
+serve_open 00000800 ffff000 0x0
+
+icode: read /motd
+
+
+
+
+
+icode: close /motd
+
+icode: spawn /init
+
+serve_open 00000800 ffff000 0x0
+
+
+
+::::::::::spawn size : e871  sp : 7f3fdfd0::::::::
+
+icode: exiting
+
+[00000800] destroying 00000800
+
+[00000800] free env 00000800
+
+i am killed ... 
+
+init: running
+
+init: data seems okay
+
+init: bss seems okay
+
+init: args: 'init' 'initarg1' 'initarg2'
+
+init: running sh
+
+LALAinit: starting sh
+
+serve_open 00001802 ffff000 0x0
+
+
+
+::::::::::spawn size : d320  sp : 7f3fdfec::::::::
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+::                                                         ::
+
+::              Super Shell  V0.0.0_1                      ::
+
+::                                                         ::
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+$ GXemul> quit

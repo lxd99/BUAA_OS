@@ -1,0 +1,57 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BY2PG	mmu.h	16;"	d
+E_BAD_ENV	mmu.h	109;"	d
+E_BAD_PATH	mmu.h	121;"	d
+E_FILE_EXISTS	mmu.h	122;"	d
+E_INVAL	mmu.h	111;"	d
+E_IPC_NOT_RECV	mmu.h	115;"	d
+E_MAX_OPEN	mmu.h	119;"	d
+E_NOT_EXEC	mmu.h	123;"	d
+E_NOT_FOUND	mmu.h	120;"	d
+E_NO_DISK	mmu.h	118;"	d
+E_NO_FREE_ENV	mmu.h	113;"	d
+E_NO_MEM	mmu.h	112;"	d
+E_UNSPECIFIED	mmu.h	108;"	d
+KADDR	mmu.h	156;"	d
+KERNBASE	mmu.h	89;"	d
+KSTACKTOP	mmu.h	92;"	d
+KSTKSIZE	mmu.h	93;"	d
+MAXERROR	mmu.h	125;"	d
+PADDR	mmu.h	147;"	d
+PDMAP	mmu.h	17;"	d
+PDSHIFT	mmu.h	19;"	d
+PDX	mmu.h	20;"	d
+PGSHIFT	mmu.h	18;"	d
+PPN	mmu.h	25;"	d
+PTE2PT	mmu.h	29;"	d
+PTE_ADDR	mmu.h	22;"	d
+PTE_COW	mmu.h	39;"	d
+PTE_D	mmu.h	38;"	d
+PTE_G	mmu.h	35;"	d
+PTE_LIBRARY	mmu.h	41;"	d
+PTE_R	mmu.h	37;"	d
+PTE_UC	mmu.h	40;"	d
+PTE_V	mmu.h	36;"	d
+PTX	mmu.h	21;"	d
+Pde	mmu.h	/^typedef u_long Pde;$/;"	t
+Pte	mmu.h	/^typedef u_long Pte;$/;"	t
+TIMESTACK	mmu.h	102;"	d
+TRUP	mmu.h	167;"	d
+UENVS	mmu.h	98;"	d
+ULIM	mmu.h	94;"	d
+UPAGES	mmu.h	97;"	d
+USTACKTOP	mmu.h	104;"	d
+UTEXT	mmu.h	105;"	d
+UTOP	mmu.h	100;"	d
+UVPT	mmu.h	96;"	d
+UXSTACKTOP	mmu.h	101;"	d
+VA2PFN	mmu.h	28;"	d
+VPN	mmu.h	26;"	d
+VPT	mmu.h	91;"	d
+_MMU_H_	mmu.h	2;"	d
+assert	mmu.h	164;"	d
