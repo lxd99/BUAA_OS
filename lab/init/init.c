@@ -8,9 +8,6 @@
 extern char aoutcode[];
 extern char boutcode[];
 
-int sys_super_multi_parameter(u_int a, u_int b, u_int c, u_int d, u_int e, u_int f, u_int g, u_int h){
-
-}
 void mips_init()
 {
 	printf("init.c:\tmips_init() is called\n");
@@ -18,23 +15,30 @@ void mips_init()
 	
 	mips_vm_init();
 	page_init();
+	//page_check();
 	
 	env_init();
 	
-	//ENV_CREATE(user_pingpong);
 	//ENV_CREATE(user_fktest);
-	ENV_CREATE(user_A);
-	ENV_CREATE(user_B);
-	ENV_CREATE(user_C);
-	
-    	trap_init();
-	kclock_init();
-	//printf("trap_init succeed!\n");
+	//ENV_CREATE(user_pt1);
+	//ENV_CREATE(user_idle);
+	//ENV_CREATE(user_fktest);
+	//ENV_CREATE(user_pingpong);
+	//ENV_CREATE(user_testfdsharing);	
+	//ENV_CREATE(user_testpipe);
+	//ENV_CREATE(user_icode);
+	//ENV_CREATE(user_testpiperace);
+	//ENV_CREATE(fs_serv);
+	//ENV_CREATE(user_testptelibrary);
+	ENV_CREATE(user_sematest);
 
-	//printf("fuck!!\n");
-	//env_run(envs);	
+	trap_init();
+	kclock_init();
+	//env_run(&envs[0]);
+
+	//env_run(&envs[1]);
 	
-	//printf("fuck!!!\n");
+	panic("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 	while(1);
 	panic("init.c:\tend of mips_init() reached!");
 }
@@ -83,4 +87,3 @@ void bzero(void *b, size_t len)
 	}		
 	
 }
-

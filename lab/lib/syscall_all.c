@@ -65,7 +65,6 @@ u_int sys_getenvid(void)
 /*** exercise 4.6 ***/
 void sys_yield(void)
 {
-	printf("yield at %x\n",curenv->env_id);
        	 bcopy((void *)KERNEL_SP - sizeof(struct Trapframe),
 		 (void*)(TIMESTACK - sizeof(struct Trapframe)),
              	 sizeof(struct Trapframe));
@@ -155,9 +154,6 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	int ret;
 	
 	if(perm&PTE_COW || !(perm&PTE_V)|| va>=UTOP ) return -E_INVAL;
-	//printf("sys_mem_alloc:%x\n ",curenv->env_pgdir);
-	//envid2env(envid,&env,0);
-	//printf("curid:%x getid:%x\n",curenv->env_id,env->env_id);
 
 	ret = envid2env(envid,&env,0);
 	CHE(ret);
@@ -165,11 +161,15 @@ int sys_mem_alloc(int sysno, u_int envid, u_int va, u_int perm)
 	CHE(ret);
 	ret= page_insert(env->env_pgdir,ppage,va,perm);
 	CHE(ret);
-	//printf("sys_mem_alloc at %x\n",va);
+
+	/*Pte * dick = UVPT;
+	dick = UVPT;
+	dick= dick+VPN(va);
+	u_int pte = *dick;
+	struct Page * mpage = UPAGES;
+	mpage  =mpage+ PPN(pte);
+	printf("sys_mem_alloc at %x ref is %x %x\n",va,ppage-pages,mpage->pp_ref);*/
 	return 0;	
-	
-
-
 }
 
 /* Overview:
@@ -204,7 +204,7 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 
     //your code here
     //add *ppte pd;
-    	if( srcva>=UTOP||dstva>=UTOP||srcva<0||dstva<0) return -E_INVAL; 
+    	if( srcva>=UTOP||dstva>=UTOP) return -E_INVAL; 
     	ret = envid2env(srcid,&srcenv,0);
 	CHE(ret);
 	ret = envid2env(dstid,&dstenv,0);
@@ -214,7 +214,7 @@ int sys_mem_map(int sysno, u_int srcid, u_int srcva, u_int dstid, u_int dstva,
 	ppage = page_lookup(srcenv->env_pgdir,round_srcva,&ppte);
 	if(ppage==0) return -E_INVAL;
 
-	if(!(*ppte &PTE_R)&&(perm&PTE_R)) return -E_INVAL;
+	//if(!(*ppte &PTE_R)&&(perm&PTE_R)) return -E_INVAL;
 
 	ret=  page_insert(dstenv->env_pgdir,ppage,round_dstva,perm);
 	CHE(ret);
@@ -291,7 +291,6 @@ int sys_env_alloc(void)
  * 	The status of environment will be set to `status` on success.
  */
 /*** exercise 4.14 ***/
-void dick(){}
 int sys_set_env_status(int sysno, u_int envid, u_int status)
 {
 	// Your code here.
@@ -307,12 +306,10 @@ int sys_set_env_status(int sysno, u_int envid, u_int status)
 	}
 	if(status != ENV_RUNNABLE && env->env_status == ENV_RUNNABLE){
 		LIST_REMOVE(env,env_sched_link);
-		
 	}
 	env->env_status = status;
 	//printf("set_status:%d\n",env->env_status);
 	//printf("pc was:%x\n",env->env_tf.pc);
-	dick();
 	return 0;
 	//	panic("sys_env_set_status not implemented");
 }
@@ -366,7 +363,6 @@ void sys_panic(int sysno, char *msg)
 /*** exercise 4.7 ***/
 void sys_ipc_recv(int sysno, u_int dstva)
 {
-	printf("icp_rec:%x\n",curenv->env_id);
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 
@@ -412,9 +408,6 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	e->env_ipc_perm = perm;
 	e->env_ipc_from = curenv->env_id;
 	if(srcva!=0){
-		Pte * pte;
-		p = page_lookup(e->env_pgdir,srcva,&pte);		
-		if(p==0) return  -E_INVAL;
 		ret=sys_mem_map(sysno,0,srcva,envid,e->env_ipc_dstva,perm);
 		CHE(ret);
 	}
@@ -423,38 +416,138 @@ int sys_ipc_can_send(int sysno, u_int envid, u_int value, u_int srcva,
 	//env_ipc_from,srcva,page 
 	return 0;
 }
-int sys_ipc_can_multi_send(int sysno,u_int value,u_int srcva,u_int perm,int env_count,...){
-	printf("sysno is:%x value is:%x srcva is:%x perm is:%x env_count is :%x\n",sysno,value,srcva,perm,env_count);
-	int x,i,ret=0;
-	va_list ap;
-	struct Env* e;
-	struct Page * p;
-	va_start(ap,env_count);
-	for(i=1;i<=env_count;i++){
-		x = va_arg(ap,int);
-		printf("%x\n",x);
-		envid2env(x,&e,0);
-		printf("%x\n",x);
-		if(envid2env(x,&e,0)<0||e->env_ipc_recving !=1 ) return -E_IPC_NOT_RECV;
-	}
-	va_start(ap,env_count);
-	for(i=1;i<=env_count;i++){
-		x = va_arg(ap,int); 
-		envid2env(x,&e,0);
-		e->env_ipc_value = value;
-		e->env_ipc_recving = 0;
-		e->env_ipc_perm = perm;
-		e->env_ipc_from = curenv->env_id;
-		if(srcva!=0){
-			Pte * pte;
-			p = page_lookup(e->env_pgdir,srcva,&pte);		
-			if(p==0) return  -E_INVAL;
-			ret=sys_mem_map(sysno,0,srcva,x,e->env_ipc_dstva,perm);
-			CHE(ret);
-		}
-		ret = sys_set_env_status(sysno,e->env_id,ENV_RUNNABLE);
-		CHE(ret);
-	}	
-	printf("succeed!\n");
+
+/* Overview:
+ * 	This function is used to write data to device, which is
+ * 	represented by its mapped physical address.
+ *	Remember to check the validity of device address (see Hint below);
+ * 
+ * Pre-Condition:
+ *      'va' is the startting address of source data, 'len' is the
+ *      length of data (in bytes), 'dev' is the physical address of
+ *      the device
+ * 	
+ * Post-Condition:
+ *      copy data from 'va' to 'dev' with length 'len'
+ *      Return 0 on success.
+ *	Return -E_INVAL on address error.
+ *      
+ * Hint: Use ummapped segment in kernel address space to perform MMIO.
+ *	 Physical device address:
+ *	* ---------------------------------*
+ *	|   device   | start addr | length |
+ *	* -----------+------------+--------*
+ *	|  console   | 0x10000000 | 0x20   |
+ *	|    IDE     | 0x13000000 | 0x4200 |
+ *	|    rtc     | 0x15000000 | 0x200  |
+ *	* ---------------------------------*
+ */
+int sys_write_dev(int sysno, u_int va, u_int dev, u_int len)
+{
+        // Your code here
+	if(dev>=0x15000000){
+		if( dev+len>=0x15000200) return -E_INVAL;
+	}else if(dev>=0x13000000){
+		if(dev+len>0x13004200) return -E_INVAL;
+	}else if(dev>=0x10000000){
+		if(dev+len>0x10000020) return -E_INVAL;
+	}else{	return -E_INVAL; }
+
+	bcopy(va,dev+0xa0000000,len);
 	return 0;
+}
+
+/* Overview:
+ * 	This function is used to read data from device, which is
+ * 	represented by its mapped physical address.
+ *	Remember to check the validity of device address (same as sys_read_dev)
+ * 
+ * Pre-Condition:
+ *      'va' is the startting address of data buffer, 'len' is the
+ *      length of data (in bytes), 'dev' is the physical address of
+ *      the device
+ * 
+ * Post-Condition:
+ *      copy data from 'dev' to 'va' with length 'len'
+ *      Return 0 on success, < 0 on error
+ *      
+ * Hint: Use ummapped segment in kernel address space to perform MMIO.
+ */
+int sys_read_dev(int sysno, u_int va, u_int dev, u_int len)
+{
+        // Your code here
+	if(dev>=0x15000000){
+		if( dev+len>=0x15000200) return -E_INVAL;
+	}else if(dev>=0x13000000){
+		if(dev+len>0x13004200) return -E_INVAL;
+	}else if(dev>=0x10000000){
+		if(dev+len>0x10000020) return -E_INVAL;
+	}else{	return -E_INVAL; }
+
+	bcopy(dev+0xa0000000,va,len);
+
+	return 0;
+}
+int sys_init_PV_var(int sysno,int init_value){
+	int i=0;
+	for(;i<SEMA_LENGTH;i++){
+		if(sema[i].flag==0){
+			LIST_INIT(&(sema[i].head));
+			sema[i].value = init_value;
+			sema[i].flag  = 1;
+			return sema[i].id;
+		}
+	}
+	//panic("fuck!!");
+	return -E_INVAL;
+}
+void sys_P(int sysno,int pv_id){
+	if(pv_id<0||pv_id >=SEMA_LENGTH )  return ;
+	if(sema[pv_id].value>0){
+		sema[pv_id].value --;
+	}else{
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		LIST_REMOVE(curenv,env_sched_link);
+		//printf("id is%x\n",curenv->env_id);
+		LIST_INSERT_TAIL(&(sema[pv_id].head),curenv,env_block_link);
+		//struct Env* env = LIST_FIRST(&(sema[pv_id].head));
+		/*if(env==NULL) panic("fuck!!\n");
+		else printf("first env  at %d is %d\n",pv_id,env->env_id);*/
+	}
+	sys_yield();
+}
+void sys_V(int sysno,int pv_id){
+	if( pv_id<0||pv_id>=SEMA_LENGTH ) return ;
+	sema[pv_id].value++;
+	struct Env * env;
+	env = LIST_FIRST(&(sema[pv_id].head));
+	if(env!=NULL){
+		env->env_status = ENV_RUNNABLE;	
+		LIST_REMOVE(env,env_block_link);
+		LIST_INSERT_TAIL(env_sched_list,env,env_sched_link);
+		sema[pv_id].value--;
+	}
+	sys_yield();
+}
+int sys_check_PV_value(int sysno,int pv_id){
+	if(pv_id<0||pv_id>=SEMA_LENGTH)
+		return -E_INVAL;
+	
+	return sema[pv_id].value;
+
+}
+void dick(){}
+void sys_release_PV_var(int sysno,int pv_id){
+	if(pv_id<0||pv_id>=SEMA_LENGTH) return ;
+	struct Env* env ;
+	env = LIST_FIRST(&(sema[pv_id].head));
+	//printf("%x ",curenv->env_id);
+	while(env!=NULL){
+		//printf("[%x]\n",env->env_id);
+		env_free(env);	
+		//dick();
+		env = LIST_FIRST(&(sema[pv_id].head));
+	}
+	sema[pv_id].flag = 0;
+	sys_yield();
 }

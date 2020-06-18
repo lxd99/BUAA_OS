@@ -128,7 +128,7 @@ void boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
     /* Hint: Use `boot_pgdir_walk` to get the page table entry of virtual address `va`. */
     for(i=0;i<size;i+=BY2PG){
     	va_temp = va+i;
-	pgtable_entry=boot_pgdir_walk(pgtable_entry,va_temp,1);
+	pgtable_entry=boot_pgdir_walk(pgdir,va_temp,1);
 	*pgtable_entry  = PTE_ADDR(pa + i);
 	*pgtable_entry |= (perm|PTE_V);
     }
@@ -417,11 +417,12 @@ page_remove(Pde *pgdir, u_long va)
     /* Step 2: Decrease `pp_ref` and decide if it's necessary to free this page. */
 
     /* Hint: When there's no virtual address mapped to this page, release it. */
+    //printf("page_remove:%x\n",va);
     ppage->pp_ref--;
+    //if(ppage->pp_ref <0) panic("ERROE!\n");
     if (ppage->pp_ref == 0) {
         page_free(ppage);
     }
-
     /* Step 3: Update TLB. */
     *pagetable_entry = 0;
     tlb_invalidate(pgdir, va);

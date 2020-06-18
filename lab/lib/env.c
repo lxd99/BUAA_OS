@@ -14,7 +14,7 @@ struct Env *curenv = NULL;            // the current env
 
 static struct Env_list env_free_list;    // Free list
 struct Env_list env_sched_list[2];      // Runnable list
-
+struct semas sema[SEMA_LENGTH];
 extern Pde *boot_pgdir;
 extern char *KERNEL_SP;
 
@@ -115,6 +115,11 @@ env_init(void)
      	envs[i].env_status = ENV_FREE;
      	LIST_INSERT_HEAD(&env_free_list,envs+i,env_link);
      }
+    /*init semaphore */
+    for(i=0;i<SEMA_LENGTH;i++){
+    	sema[i].id = i;
+	sema[i].flag = 0;
+    }
 
 }
 
@@ -208,6 +213,7 @@ env_alloc(struct Env **new, u_int parent_id)
     e->env_parent_id = parent_id;
     e->env_tf.regs[29] = USTACKTOP; 
     e->env_status = ENV_RUNNABLE;
+    e->env_runs = 0;
 
 
     /*Step 4: Focus on initializing the sp register and cp0_status of env_tf field, located at this new Env. */
@@ -254,7 +260,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     for (i = 0; cnt<bin_size; i += BY2PG) {
         /* Hint: You should alloc a new page. */
 	if(page_alloc(&p)!=0) return -1;
-	p->pp_ref++;
+	//p->pp_ref++;
         //閹绘帒鍙?
 	r = i==0?offset:0;
 	pos = page2kva(p);
@@ -270,7 +276,7 @@ static int load_icode_mapper(u_long va, u_int32_t sgsize,
     sgsize += offset;
     while (i < sgsize) {
 	if(page_alloc(&p)!=0) return -1;
-	p->pp_ref++;
+	//p->pp_ref++;
 	page_insert(env->env_pgdir,p,dva+i,PTE_R);
 	i += BY2PG;
     }
@@ -362,7 +368,7 @@ void
 env_create(u_char *binary, int size)
 {
      /*Step 1: Use env_create_priority to alloc a new env with priority 1 */
-     	env_create_priority(binary,size,5);
+     	env_create_priority(binary,size,1);
 	//printf("create succeed!\n");
 
 }
@@ -391,6 +397,7 @@ env_free(struct Env *e)
         /* Hint: Unmap all PTEs in this page table. */
         for (pteno = 0; pteno <= PTX(~0); pteno++)
             if (pt[pteno] & PTE_V) {
+	    	//printf("va is%x pa is %x\n",(pdeno<<22)|(pteno<<12),pt[pteno]);	
                 page_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
             }
         /* Hint: free the page table itself. */
@@ -406,6 +413,7 @@ env_free(struct Env *e)
     e->env_status = ENV_FREE;
     LIST_INSERT_HEAD(&env_free_list, e, env_link);
     LIST_REMOVE(e, env_sched_link);
+    LIST_REMOVE(e,env_block_link);
 }
 
 /* Overview:
@@ -426,6 +434,7 @@ env_destroy(struct Env *e)
               (void *)TIMESTACK - sizeof(struct Trapframe),
               sizeof(struct Trapframe));
         printf("i am killed ... \n");
+    	//LIST_REMOVE(e, env_sched_link);
         sched_yield();
     }
 }
@@ -463,6 +472,7 @@ env_run(struct Env *e)
     curenv = e;
     if(e==NULL) return;
     curenv->env_status = ENV_RUNNABLE;
+    curenv->env_runs++;
    
     /*Step 3: Use lcontext() to switch to its address space. */
 //    printf("set_context\n");

@@ -41,7 +41,7 @@ int fork(void);
 void user_bcopy(const void *src, void *dst, size_t len);
 void user_bzero(void *v, u_int n);
 //////////////////////////////////////////////////syscall_lib
-extern int msyscall(int, int, ... );
+extern int msyscall(int, int, int, int, int, int);
 
 void syscall_putchar(char ch);
 u_int syscall_getenvid(void);
@@ -56,7 +56,7 @@ int syscall_mem_unmap(u_int envid, u_int va);
 
 inline static int syscall_env_alloc(void)
 {
-    return msyscall(SYS_env_alloc, 0);
+    return msyscall(SYS_env_alloc, 0, 0, 0, 0, 0);
 }
 
 int syscall_set_env_status(u_int envid, u_int status);
@@ -65,19 +65,19 @@ void syscall_panic(char *msg);
 int syscall_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm);
 void syscall_ipc_recv(u_int dstva);
 int syscall_cgetc();
-int syscall_ipc_can_multi_send(u_int value,u_int srcva,u_int perm,int env_count,...);
+int syscall_write_dev(u_int va,u_int dev,u_int offset);
+int syscall_read_dev(u_int va,u_int dev,u_int offset);
+
 
 // string.c
 int strlen(const char *s);
 char *strcpy(char *dst, const char *src);
-const char *strchr(const char *s, char c);
+const char *strchr(const char *s, char c); 
 void *memcpy(void *destaddr, void const *srcaddr, u_int len);
 int strcmp(const char *p, const char *q);
-
 // ipc.c
 void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
 u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
-int ipc_send_double(u_int envid_1, u_int envid_2,int value,u_int srcva,u_int perm);
 
 // wait.c
 void wait(u_int envid);
@@ -91,7 +91,7 @@ int pipe(int pfd[2]);
 int pipeisclosed(int fdnum);
 
 // pageref.c
-int	pageref(void *);
+int pageref(void *);
 
 // pgfault.c
 void set_pgfault_handler(void (*fn)(u_int va));
@@ -100,12 +100,12 @@ void set_pgfault_handler(void (*fn)(u_int va));
 int fwritef(int fd, const char *fmt, ...);
 
 // fsipc.c
-int	fsipc_open(const char *, u_int, struct Fd *);
+int	fsipc_open(const char*, u_int, struct Fd*);
 int	fsipc_map(u_int, u_int, u_int);
 int	fsipc_set_size(u_int, u_int);
 int	fsipc_close(u_int);
 int	fsipc_dirty(u_int, u_int);
-int	fsipc_remove(const char *);
+int	fsipc_remove(const char*);
 int	fsipc_sync(void);
 int	fsipc_incref(u_int);
 
@@ -118,7 +118,7 @@ void	close_all(void);
 int	readn(int fd, void *buf, u_int nbytes);
 int	dup(int oldfd, int newfd);
 int fstat(int fdnum, struct Stat *stat);
-int	stat(const char *path, struct Stat *);
+int	stat(const char *path, struct Stat*);
 
 // file.c
 int	open(const char *path, int mode);

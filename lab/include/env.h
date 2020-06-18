@@ -17,7 +17,7 @@
 #define ENV_FREE	0
 #define ENV_RUNNABLE		1
 #define ENV_NOT_RUNNABLE	2
-
+#define SEMA_LENGTH            5
 struct Env {
 	struct Trapframe env_tf;        // Saved registers
 	LIST_ENTRY(Env) env_link;       // Free list
@@ -34,6 +34,7 @@ struct Env {
 	u_int env_ipc_recving;          // env is blocked receiving
 	u_int env_ipc_dstva;		// va at which to map received page
 	u_int env_ipc_perm;		// perm of page mapping received
+	LIST_ENTRY(Env) env_block_link;
 
 	// Lab 4 fault handling
 	u_int env_pgfault_handler;      // page fault state
@@ -44,9 +45,17 @@ struct Env {
 	u_int env_nop;                  // align to avoid mul instruction
 };
 
+
 LIST_HEAD(Env_list, Env);
+struct semas{
+	int value;
+	int flag;
+	int id;
+	struct Env_list head;
+};
 extern struct Env *envs;		// All environments
 extern struct Env *curenv;	        // the current env
+extern struct semas sema[SEMA_LENGTH];
 extern struct Env_list env_sched_list[2]; // runnable env list
 
 void env_init(void);

@@ -23,7 +23,7 @@ void sched_yield(void)
 
    ee = LIST_FIRST(&env_sched_list[point]);	
    if(count==0){
-   	/*LIST_FOREACH(ee,&env_sched_list[point],env_sched_link){
+   	LIST_FOREACH(ee,&env_sched_list[point],env_sched_link){
    		if(ee->env_status==ENV_RUNNABLE) break;
 		num++;
    	}
@@ -31,16 +31,18 @@ void sched_yield(void)
 	else if(num==0){
 		LIST_REMOVE(ee,env_sched_link);
 		LIST_INSERT_TAIL(&env_sched_list[1-point],ee,env_sched_link);
-	}*/
-	if(ee==NULL){
+	}
+	/*if(ee==NULL){
+		printf("true\n");
 		point = 1-point;
 		ee = LIST_FIRST(&env_sched_list[point]);
 	}
 	else{
+		printf("fail! %x\n",ee->env_status);
 		LIST_REMOVE(ee,env_sched_link);
 		LIST_INSERT_TAIL(&env_sched_list[1-point],ee,env_sched_link);
 		ee = LIST_FIRST(&env_sched_list[point]);
-	}
+	}*/
    }
 
     /*  hint:
@@ -56,19 +58,16 @@ void sched_yield(void)
      *  LIST_INSERT_TAIL, LIST_REMOVE, LIST_FIRST, LIST_EMPTY
      */
      //printf("count: %d point: %d\n",count,point);
-     //LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
-     //	if(ee->env_status==ENV_RUNNABLE) break;	
+     LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
+     	if(ee->env_status==ENV_RUNNABLE) break;	
 
      if(ee==NULL){	
     	point = 1-point; 
-	/*LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
+	LIST_FOREACH(ee,&env_sched_list[point],env_sched_link)
 		if(ee->env_status == ENV_RUNNABLE) break;
-	if(ee==NULL){
-		panic("no env to run!!\n");
-	}*/
-	ee = LIST_FIRST(&env_sched_list[point]);
-	if(ee==NULL) panic("no env to run!!\n");
-
+	if(ee==NULL)	panic("no env to run!!\n");
+	//ee = LIST_FIRST(&env_sched_list[point]);
+	//if(ee==NULL) panic("no env to run!!\n");
      }
 
      if(count==0) count =ee->env_pri;
